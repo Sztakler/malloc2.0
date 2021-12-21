@@ -17,7 +17,7 @@
 // #define debug(fmt, ...) printf("%s: " fmt "\n", __func__, __VA_ARGS__)
 #define msg(...) printf(__VA_ARGS__)
 #else
-#define debug(fmt, ...)
+//#define debug(fmt, ...)
 #define msg(...)
 #endif
 
