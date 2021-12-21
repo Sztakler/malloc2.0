@@ -195,7 +195,7 @@ static word_t *find_fit(size_t reqsz) {
     // printf("\t\tfirst_block = 0x%lx last_block = 0x%lx byte_past_heap =
     // 0x%lx\n", first_block, last_block, byte_past_heap);
     word_t *bt = ptr;
-
+    // nanana
     /*
      * Current block is exactly the same size as reqiested and free, so we can
      * simply return it.
