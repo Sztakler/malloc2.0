@@ -99,7 +99,7 @@ static inline word_t *bt_next(word_t *bt) {
   // bt, bt_size(bt));
   word_t *next = bt + bt_size(bt) / sizeof(word_t);
 
-  if (next > last_block || next == bt) {
+  if (next > (word_t *)last_block || next == bt) {
     // printf("\t\t\treturned NULL 0x%lx > 0x%lx\n", next, last_block);
     return NULL;
   }
@@ -133,12 +133,12 @@ static inline size_t blksz(size_t size) {
   return round_up(size + 2 * sizeof(word_t));
 }
 
-static void *morecore(size_t size) {
-  void *ptr = mem_sbrk(size);
-  if (ptr == (void *)-1)
-    return NULL;
-  return ptr;
-}
+// static void *morecore(size_t size) {
+//   void *ptr = mem_sbrk(size);
+//   if (ptr == (void *)-1)
+//     return NULL;
+//   return ptr;
+// }
 
 static inline void split(word_t *bt, size_t size) {
   word_t *remain_block_bt = bt + size / sizeof(word_t);
@@ -280,12 +280,12 @@ void free(void *ptr) {
   }
 
   void *left_block_footer = 0;
-  size_t left_block_size = 0;
-  int left_block_free = -1;
+  // size_t left_block_size = 0;
+  // int left_block_free = -1;
 
-  void *right_block_footer = 0;
-  size_t right_block_size = 0;
-  int right_block_free = -1;
+  // void *right_block_footer = 0;
+  // size_t right_block_size = 0;
+  // int right_block_free = -1;
 
   /* `ptr` points to start of the payload, but we want a pointer to the
    * beginning of entire block. */
@@ -299,20 +299,20 @@ void free(void *ptr) {
   void *left_block_header = bt_prev(bt);
   if (left_block_header) {
     left_block_footer = bt_footer(left_block_header);
-    left_block_size = bt_size(left_block_header);
-    left_block_free = bt_free(left_block_header);
+    // left_block_size = bt_size(left_block_header);
+    // left_block_free = bt_free(left_block_header);
   }
   /* We already can calculate address of the next block's header. */
   void *right_block_header = bt_next(bt);
   if (right_block_header) {
-    right_block_footer = bt_footer(right_block_header);
-    right_block_size = bt_size(right_block_header);
-    right_block_free = bt_free(right_block_header);
+    // right_block_footer = bt_footer(right_block_header);
+    // right_block_size = bt_size(right_block_header);
+    // right_block_free = bt_free(right_block_header);
   }
 
   /* Withouth colaescing we don't change current block's bt's. */
   void *new_block_header = bt;
-  void *new_block_footer = bt_footer(bt);
+  // void *new_block_footer = bt_footer(bt);
   size_t new_block_size = bt_size(bt);
   // printf("[current block] 0x%lx 0x%lx 0x%lx [free?] %d\n", new_block_header,
   // new_block_footer + sizeof(word_t), new_block_size,
@@ -334,7 +334,7 @@ void free(void *ptr) {
   /* We shift new_block_footer to the right if right neighbour is free and is
    * inside the heap. */
   if (right_block_header && bt_free(right_block_header)) {
-    new_block_footer = right_block_footer;
+    // new_block_footer = right_block_footer;
     new_block_size += bt_size(right_block_header);
   }
   bt_make(new_block_header, new_block_size, FREE);
@@ -421,7 +421,7 @@ void mm_checkheap(int verbose) {
 
     word_t *next = ptr + bt_size(ptr);
 
-    if (next > last_block || next == ptr) {
+    if (next > (word_t *)last_block || next == ptr) {
       // printf("\t[next > last_block]0x%lx > 0x%lx [next == ptr]0x%lx ==
       // 0x%lx\n", next, last_block, next, ptr);
       next = NULL;
