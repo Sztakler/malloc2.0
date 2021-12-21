@@ -278,11 +278,10 @@ void *malloc(size_t size) {
 #ifdef DEBUG
   printf("\033[3;102;30m--== mallocked ==-- at 0x%p\033[0m\n\n",
          bt_payload(bt));
-  
+
   printf("Called mm_checkheap() from malloc\n");
   mm_checkheap(0);
 #endif
-
 
   return bt_payload(bt);
 }
@@ -425,39 +424,40 @@ void *realloc(void *old_ptr, size_t size) {
       size_t new_block_size = total_size - size;
       void *new_block = old_bt + increased_size;
 
-      #ifdef DEBUG
+#ifdef DEBUG
       printf("[total size]0x%lx [increased size]0x%lx [new block size]0x%lx\n",
-        total_size, increased_size, new_block_size);
+             total_size, increased_size, new_block_size);
       printf("\033[46;30m[OPTIMALIZATION !]\033[0m\n");
       printf("[new block]0x%p [new block size]0x%lx [increased size]0x%lx\n",
-        new_block, new_block_size, increased_size);
-      #endif
+             new_block, new_block_size, increased_size);
+#endif
 
       bt_make(old_bt, increased_size, USED);
       bt_make(new_block, new_block_size, FREE);
 
-      #ifdef DEBUG
-      printf("[bt]0x%p [ft]0x%p [size]0x%x [free]%d\n", new_block, bt_footer(new_block), bt_size(new_block), bt_free(new_block));
-      #endif
+#ifdef DEBUG
+      printf("[bt]0x%p [ft]0x%p [size]0x%x [free]%d\n", new_block,
+             bt_footer(new_block), bt_size(new_block), bt_free(new_block));
+#endif
 
-      if (bt_next(new_block) ==
-            NULL) { // maybe this isn't the best way (or even correct way) to do it
-          last_block = new_block;
-          #ifdef DEBUG
-          printf("[bt]0x%p [ft]0x%p [size]0x%x [free]%d\n[returned payload]0x%p\n", 
-            new_block, bt_footer(new_block), bt_size(new_block), bt_free(new_block), bt_payload(old_bt));
-      #endif
-
-        }
-      #ifdef DEBUG
+      if (bt_next(new_block) == NULL) { // maybe this isn't the best way (or
+                                        // even correct way) to do it
+        last_block = new_block;
+#ifdef DEBUG
+        printf(
+          "[bt]0x%p [ft]0x%p [size]0x%x [free]%d\n[returned payload]0x%p\n",
+          new_block, bt_footer(new_block), bt_size(new_block),
+          bt_free(new_block), bt_payload(old_bt));
+#endif
+      }
+#ifdef DEBUG
       printf("Called mm_checkheap() from realloc\n");
       mm_checkheap(0);
-      #endif
+#endif
 
       return bt_payload(old_bt);
     }
   }
-
 
   void *new_ptr = malloc(size);
   /* If malloc() fails, the original block is left untouched. */

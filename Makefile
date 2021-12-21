@@ -1,6 +1,5 @@
 CC = gcc -g
-# CFLAGS = -O3 -Wall -Werror -DDRIVER
-CFLAGS = -O3 -DDRIVER
+CFLAGS = -O3 -Wall -Werror -DDRIVER
 
 OBJS = mdriver.o mm.o memlib.o
 
