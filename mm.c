@@ -133,13 +133,6 @@ static inline size_t blksz(size_t size) {
   return round_up(size + 2 * sizeof(word_t));
 }
 
-// static void *morecore(size_t size) {
-//   void *ptr = mem_sbrk(size);
-//   if (ptr == (void *)-1)
-//     return NULL;
-//   return ptr;
-// }
-
 static inline void split(word_t *bt, size_t size) {
   word_t *remain_block_bt = bt + size / sizeof(word_t);
   size_t remaining_size = bt_size(bt) - size;
@@ -263,7 +256,7 @@ void *malloc(size_t size) {
 
   // printf("--== mallocked ==-- at 0x%lx\n\n", bt_payload(bt));
 
-  mm_checkheap(0);
+  // mm_checkheap(0);
 
   return bt_payload(bt);
 }
@@ -350,7 +343,7 @@ void free(void *ptr) {
   }
 
   // printf("--== freed ==--\n\n");
-  mm_checkheap(0);
+  // mm_checkheap(0);
 }
 
 /*
