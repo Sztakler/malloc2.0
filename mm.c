@@ -17,7 +17,7 @@
 // #define debug(fmt, ...) printf("%s: " fmt "\n", __func__, __VA_ARGS__)
 #define msg(...) printf(__VA_ARGS__)
 #else
-//#define debug(fmt, ...)
+#define debug(fmt, ...)
 #define msg(...)
 #endif
 
@@ -95,12 +95,17 @@ static inline void *bt_payload(word_t *bt) {
 
 /* Returns address of next block or NULL. */
 static inline word_t *bt_next(word_t *bt) {
-  // printf("\t\t\t\033[3;42;30m{bt_next}\033[0m bt = 0x%lx move by 0x%lx\n",
-  // bt, bt_size(bt));
+#ifdef DEBUG
+  printf("\t\t\t\033[3;42;30m{bt_next}\033[0m bt = 0x%p move by 0x%x\n", bt,
+         bt_size(bt));
+#endif
   word_t *next = bt + bt_size(bt) / sizeof(word_t);
 
   if (next > (word_t *)last_block || next == bt) {
-    // printf("\t\t\treturned NULL 0x%lx > 0x%lx\n", next, last_block);
+#ifdef DEBUG
+    printf("\033[3;101;30mreturned NULL 0x%p > 0x%p\033[0m\n", next,
+           last_block);
+#endif
     return NULL;
   }
 
@@ -111,10 +116,11 @@ static inline word_t *bt_next(word_t *bt) {
 static inline word_t *bt_prev(word_t *bt) {
   word_t *prev_footer = bt - 1;
   void *prev = bt - bt_size(prev_footer) / sizeof(word_t);
-  // printf("\t\t\t\033[3;42;30m{bt_prev}\033[0m [bt] 0x%lx [shift] 0x%lx
-  // [prevft] 0x%lx [prevbt] 0x%lx\n", bt, bt_size(prev_footer), prev_footer,
-  // prev);
-
+#ifdef DEBUG
+  printf("\t\t\t\033[3;42;30m{bt_prev}\033[0m [bt] 0x%p [shift] 0x%x [prevft] "
+         "0x%p [prevbt] 0x%p\n",
+         bt, bt_size(prev_footer), prev_footer, prev);
+#endif
   if (prev < first_block || prev == bt)
     return NULL;
 
@@ -139,11 +145,12 @@ static inline void split(word_t *bt, size_t size) {
   bt_make(bt, size, FREE);
   bt_make(remain_block_bt, remaining_size, FREE);
 
-  // printf("\t\033[3;42;30m{split}\033[0m\033[3;45;30m[splitting block]\033[0m
-  // [left]0x%lx:0x%lx (size)0x%lx [right]0x%lx:0x%lx (size)0x%lx
-  // (rmsz)0x%lx\n", bt, bt_footer(bt), bt_size(bt), remain_block_bt,
-  // bt_footer(remain_block_bt), bt_size(remain_block_bt), remaining_size);
-
+#ifdef DEBUG
+  printf("\t\033[3;42;30m{split}\033[0m\033[3;45;30m[splitting block]\033[0m "
+         "[left]0x%p:0x%p (size)0x%x [right]0x%p:0x%p (size)0x%x (rmsz)0x%lx\n",
+         bt, bt_footer(bt), bt_size(bt), remain_block_bt,
+         bt_footer(remain_block_bt), bt_size(remain_block_bt), remaining_size);
+#endif
   /* We may split last block, then we have to update last_block pointer. */
   if (bt_next(remain_block_bt) ==
       NULL) { // maybe this isn't the best way (or even correct way) to do it
@@ -159,7 +166,9 @@ static inline void split(word_t *bt, size_t size) {
 /* --=[ mm_init ]=---------------------------------------------------------- */
 
 int mm_init(void) {
-  // printf("--== it's mm_init time ==--\n");
+#ifdef DEBUG
+  printf("\033[3;103;30m--== it's mm_init time ==--\033[0m\n");
+#endif
 
   void *ptr = mem_sbrk(ALIGNMENT - sizeof(word_t));
   if (!ptr)
@@ -171,8 +180,10 @@ int mm_init(void) {
   byte_past_heap = first_block;
   last_block = first_block;
 
-  // printf("0x%lx 0x%lx 0x%lx 0x%lx\n--== initialized ==--\n", ptr,
-  // first_block, last_block, byte_past_heap);
+#ifdef DEBUG
+  printf("0x%p 0x%p 0x%p 0x%p\n\033[3;46;30m--== initialized ==--\033[0m\n",
+         ptr, first_block, last_block, byte_past_heap);
+#endif
 
   return 0;
 }
@@ -182,8 +193,10 @@ int mm_init(void) {
 #if 1
 /* First fit startegy. */
 static word_t *find_fit(size_t reqsz) {
-  // printf("\t\033[3;42;30m{find_fit}\033[0m\033[3;43;30m[traversing
-  // list]\033[0m\n");
+#ifdef DEBUG
+  printf(
+    "\t\033[3;42;30m{find_fit}\033[0m\033[3;43;30m[traversing list]\033[0m\n");
+#endif
 
   void *ptr = first_block;
 
@@ -191,9 +204,11 @@ static word_t *find_fit(size_t reqsz) {
    * Traverse heap block by block
    */
   while (ptr) {
-    // printf("\t\tptr = 0x%lx block_size = 0x%lx\n", ptr, bt_size(ptr));
-    // printf("\t\tfirst_block = 0x%lx last_block = 0x%lx byte_past_heap =
-    // 0x%lx\n", first_block, last_block, byte_past_heap);
+#ifdef DEBUG
+    printf("\t\tptr = 0x%p block_size = 0x%x\n", ptr, bt_size(ptr));
+    printf("\t\tfirst_block = 0x%p last_block = 0x%p byte_past_heap = 0x%p\n",
+           first_block, last_block, byte_past_heap);
+#endif
     word_t *bt = ptr;
     // nanana
     /*
@@ -217,8 +232,10 @@ static word_t *find_fit(size_t reqsz) {
      */
     else {
       ptr = bt_next(ptr);
-      // printf("\t\t\033[3;43;30m[Move to next block]\033[0m next_ptr =
-      // 0x%lx\n", ptr);
+#ifdef DEBUG
+      printf("\t\t1\033[3;43;30m[Move to next block]\033[0m next_ptr = 0x%p\n",
+             ptr);
+#endif
     }
   }
 
@@ -230,9 +247,12 @@ static word_t *find_fit(size_t reqsz) {
   bt_make(ptr, reqsz, FREE);
   last_block = ptr;
   byte_past_heap = ptr + reqsz;
-  // printf("\033[3;43;30m[Creating new block]\033[0m at 0x%lx ending at 0x%lx
-  // of size 0x%lx [byte_past_heap]0x%lx\n", ptr, bt_footer(ptr) + 1,
-  // bt_size(ptr), byte_past_heap);
+
+#ifdef DEBUG
+  printf("\033[3;43;30m[Creating new block]\033[0m at 0x%p ending at 0x%p of "
+         "size 0x%x [byte_past_heap]0x%p\n",
+         ptr, bt_footer(ptr) + 1, bt_size(ptr), byte_past_heap);
+#endif
 
   return ptr;
 }
@@ -243,20 +263,26 @@ static word_t *find_fit(size_t reqsz) {
 #endif
 
 void *malloc(size_t size) {
-
-  // printf("--== it's malloc time ==--\n");
-  // printf("\033[3;43;30m[mallocing]\033[0m [reqsz]0x%lx ", size);
-
+#ifdef DEBUG
+  printf("\033[3;102;30m--== it's malloc time ==--\033[0m\n");
+  printf("\033[3;43;30m[mallocing] [reqsz]0x%lx\033[0m\n", size);
+  printf("Called mm_checkheap() from malloc\n");
+  mm_checkheap(0);
+#endif
   size = blksz(size);
-
-  // printf("[rdpsz]0x%lx\n", size);
-
+#ifdef DEBUG
+  printf("[round-up size]0x%lx\n", size);
+#endif
   word_t *bt = find_fit(size);
   bt_make(bt, bt_size(bt), USED);
+#ifdef DEBUG
+  printf("\033[3;102;30m--== mallocked ==-- at 0x%p\033[0m\n\n",
+         bt_payload(bt));
+  
+  printf("Called mm_checkheap() from malloc\n");
+  mm_checkheap(0);
+#endif
 
-  // printf("--== mallocked ==-- at 0x%lx\n\n", bt_payload(bt));
-
-  // mm_checkheap(0);
 
   return bt_payload(bt);
 }
@@ -264,21 +290,24 @@ void *malloc(size_t size) {
 /* --=[ free ]=------------------------------------------------------------- */
 
 void free(void *ptr) {
-  // printf("--== it's freeing time ==--\n");
-  // printf("{free}    [ptr] 0x%lx\n", ptr);
-
+#ifdef DEBUG
+  printf("\033[3;106;30m--== it's freeing time ==--\033[0m\n");
+  printf("{free}    [ptr] 0x%p\n", ptr);
+#endif
   if (ptr == NULL) {
-    // printf("[ptr=NULL]Haha, very funny.\n");
+#ifdef DEBUG
+    printf("[ptr=NULL]Haha, very funny.\n");
+#endif
     return;
   }
 
   void *left_block_footer = 0;
-  // size_t left_block_size = 0;
-  // int left_block_free = -1;
+  size_t left_block_size = 0;
+  int left_block_free = -1;
 
-  // void *right_block_footer = 0;
-  // size_t right_block_size = 0;
-  // int right_block_free = -1;
+  void *right_block_footer = 0;
+  size_t right_block_size = 0;
+  int right_block_free = -1;
 
   /* `ptr` points to start of the payload, but we want a pointer to the
    * beginning of entire block. */
@@ -292,29 +321,32 @@ void free(void *ptr) {
   void *left_block_header = bt_prev(bt);
   if (left_block_header) {
     left_block_footer = bt_footer(left_block_header);
-    // left_block_size = bt_size(left_block_header);
-    // left_block_free = bt_free(left_block_header);
+    left_block_size = bt_size(left_block_header);
+    left_block_free = bt_free(left_block_header);
   }
   /* We already can calculate address of the next block's header. */
   void *right_block_header = bt_next(bt);
   if (right_block_header) {
-    // right_block_footer = bt_footer(right_block_header);
-    // right_block_size = bt_size(right_block_header);
-    // right_block_free = bt_free(right_block_header);
+    right_block_footer = bt_footer(right_block_header);
+    right_block_size = bt_size(right_block_header);
+    right_block_free = bt_free(right_block_header);
   }
 
   /* Withouth colaescing we don't change current block's bt's. */
   void *new_block_header = bt;
-  // void *new_block_footer = bt_footer(bt);
+  void *new_block_footer = bt_footer(bt);
   size_t new_block_size = bt_size(bt);
-  // printf("[current block] 0x%lx 0x%lx 0x%lx [free?] %d\n", new_block_header,
-  // new_block_footer + sizeof(word_t), new_block_size,
-  // bt_free(new_block_header)); printf("[left    block] 0x%lx 0x%lx 0x%lx
-  // [free?] %d\n", left_block_header, left_block_footer + sizeof(word_t),
-  // left_block_size, left_block_free); printf("[right   block] 0x%lx 0x%lx
-  // 0x%lx [free?] %d\n", right_block_header, right_block_footer +
-  // sizeof(word_t), right_block_size, right_block_free);
 
+#ifdef DEBUG
+  printf("[current block] 0x%p 0x%p 0x%lx [free?] %d\n", new_block_header,
+         new_block_footer + sizeof(word_t), new_block_size,
+         bt_free(new_block_header));
+  printf("[left    block] 0x%p 0x%p 0x%lx [free?] %d\n", left_block_header,
+         left_block_footer + sizeof(word_t), left_block_size, left_block_free);
+  printf("[right   block] 0x%p 0x%p 0x%lx [free?] %d\n", right_block_header,
+         right_block_footer + sizeof(word_t), right_block_size,
+         right_block_free);
+#endif
   /*
    * COALESCING
    */
@@ -327,23 +359,26 @@ void free(void *ptr) {
   /* We shift new_block_footer to the right if right neighbour is free and is
    * inside the heap. */
   if (right_block_header && bt_free(right_block_header)) {
-    // new_block_footer = right_block_footer;
+    new_block_footer = right_block_footer;
     new_block_size += bt_size(right_block_header);
   }
   bt_make(new_block_header, new_block_size, FREE);
-  // printf("[freed   block] 0x%lx 0x%lx 0x%lx [free?] %d\n", new_block_header,
-  // new_block_footer + sizeof(word_t), new_block_size,
-  // bt_free(new_block_header));
-
+#ifdef DEBUG
+  printf("[freed   block] 0x%p 0x%p 0x%lx [free?] %d\n", new_block_header,
+         new_block_footer + sizeof(word_t), new_block_size,
+         bt_free(new_block_header));
+#endif
   /* We may connect last block with it's left neighbour, then we have to update
    * last_block pointer. */
   if (bt_next(new_block_header) ==
       NULL) { // maybe this isn't the best way (or even correct way) to do it
     last_block = new_block_header;
   }
-
-  // printf("--== freed ==--\n\n");
-  // mm_checkheap(0);
+#ifdef DEBUG
+  printf("\033[3;106;30m--== freed ==--\033[0m\n\n");
+  printf("Called mm_checkheap() from free\n");
+  mm_checkheap(0);
+#endif
 }
 
 /*
@@ -351,6 +386,10 @@ void free(void *ptr) {
  *      copying its data, and freeing the old block.
  **/
 void *realloc(void *old_ptr, size_t size) {
+#ifdef DEBUG
+  printf("\033[3;46;30m--== it's realloc time ==--\033[0m\n");
+  printf("\033[3;46;30m[reallocing][reqsz]0x%lx\033[0m \n", size);
+#endif
   /* If size == 0 then this is just free, and we return NULL. */
   if (size == 0) {
     free(old_ptr);
@@ -361,8 +400,66 @@ void *realloc(void *old_ptr, size_t size) {
   if (!old_ptr)
     return malloc(size);
 
-  void *new_ptr = malloc(size);
+  size = blksz(size);
 
+  // Optimalization 1
+  /* If current block lies next to free block that's large enough, we can join
+   * them. */
+  void *old_bt = old_ptr - sizeof(word_t);
+  void *next_block = bt_next(old_bt);
+  if (next_block) {
+
+    size_t old_bt_size = bt_size(old_bt);
+    size_t next_block_size = bt_size(next_block);
+#ifdef DEBUG
+    printf(
+      "[old bt]0x%p [old size]0x%lx [nextblock]0x%p [next size]0x%lx [join]%d "
+      "[bt_free(next_block)]%d [old_bt_size + next_block_size >= size]%d\n",
+      old_bt, old_bt_size, next_block, next_block_size,
+      bt_free(next_block) && (old_bt_size + next_block_size >= size),
+      bt_free(next_block), old_bt_size + next_block_size >= size);
+#endif
+    if (bt_free(next_block) && (old_bt_size + next_block_size >= size)) {
+      size_t total_size = old_bt_size + next_block_size;
+      size_t increased_size = size;
+      size_t new_block_size = total_size - size;
+      void *new_block = old_bt + increased_size;
+
+      #ifdef DEBUG
+      printf("[total size]0x%lx [increased size]0x%lx [new block size]0x%lx\n",
+        total_size, increased_size, new_block_size);
+      printf("\033[46;30m[OPTIMALIZATION !]\033[0m\n");
+      printf("[new block]0x%p [new block size]0x%lx [increased size]0x%lx\n",
+        new_block, new_block_size, increased_size);
+      #endif
+
+      bt_make(old_bt, increased_size, USED);
+      bt_make(new_block, new_block_size, FREE);
+
+      #ifdef DEBUG
+      printf("[bt]0x%p [ft]0x%p [size]0x%x [free]%d\n", new_block, bt_footer(new_block), bt_size(new_block), bt_free(new_block));
+      #endif
+
+      if (bt_next(new_block) ==
+            NULL) { // maybe this isn't the best way (or even correct way) to do it
+          last_block = new_block;
+          #ifdef DEBUG
+          printf("[bt]0x%p [ft]0x%p [size]0x%x [free]%d\n[returned payload]0x%p\n", 
+            new_block, bt_footer(new_block), bt_size(new_block), bt_free(new_block), bt_payload(old_bt));
+      #endif
+
+        }
+      #ifdef DEBUG
+      printf("Called mm_checkheap() from realloc\n");
+      mm_checkheap(0);
+      #endif
+
+      return bt_payload(old_bt);
+    }
+  }
+
+
+  void *new_ptr = malloc(size);
   /* If malloc() fails, the original block is left untouched. */
   if (!new_ptr)
     return NULL;
@@ -393,11 +490,12 @@ void *calloc(size_t nmemb, size_t size) {
 /* --=[ mm_checkheap ]=----------------------------------------------------- */
 
 void mm_checkheap(int verbose) {
-
-  // printf("\033[2;103;30m--==::: HEAP :::==--\033[0m\n");
-  // printf("\033[3;103;30m[first_block] 0x%lx  [last_block] 0x%lx
-  // [byte_past_heap] 0x%lx\033[0m\n\n", first_block, last_block,
-  // byte_past_heap);
+#ifdef DEBUG
+  printf("\033[2;103;30m--==::: HEAP :::==--\033[0m\n");
+  printf("\033[3;103;30m[first_block] 0x%p  [last_block] 0x%p [byte_past_heap] "
+         "0x%p\033[0m\n\n",
+         first_block, last_block, byte_past_heap);
+#endif
 
   int block_id = 0;
   void *ptr = first_block;
@@ -406,31 +504,37 @@ void mm_checkheap(int verbose) {
    * Traverse heap block by block
    */
   while (ptr) {
-
-    // printf("[id]%d  [hd]0x%lx  [ft]0x%lx  [free]%d  [size]0x%lx\n", block_id,
-    // ptr, bt_footer(ptr), bt_free(ptr), bt_size(ptr));
-
+#ifdef DEBUG
+    printf("[id]%d  [hd]0x%p  [ft]0x%p  [free]%d  [size]0x%x\n", block_id, ptr,
+           bt_footer(ptr), bt_free(ptr), bt_size(ptr));
+#endif
     // ptr = bt_next(ptr);
 
     word_t *next = ptr + bt_size(ptr);
 
     if (next > (word_t *)last_block || next == ptr) {
-      // printf("\t[next > last_block]0x%lx > 0x%lx [next == ptr]0x%lx ==
-      // 0x%lx\n", next, last_block, next, ptr);
+#ifdef DEBUG
+      printf("\t[next > last_block]0x%p > 0x%p [next == ptr]0x%p == 0x%p\n",
+             next, last_block, next, ptr);
+#endif
       next = NULL;
     }
 
-    if ((first_block - last_block) > 0) {
-      // printf("\033[2;101;30m<ERROR>\033[0m [first_block - last_block]0x%lx
-      // [first_block]0x%lx [last_block]0x%lx\n", first_block - last_block,
-      // first_block, last_block);
+    if (first_block > last_block) {
+#ifdef DEBUG
+      printf("\033[2;101;30m<ERROR>\033[0m [first_block > last_block]%d "
+             "[first_block]0x%p [last_block]0x%p\n",
+             first_block > last_block, first_block, last_block);
+#endif
       exit(1);
     }
 
-    if ((last_block - byte_past_heap) > 0) {
-      // printf("\033[2;101;30m<ERROR>\033[0m [last_block - byte_past_heap]0x%lx
-      // [last_block]0x%lx [byte_past_heap]0x%lx\n", last_block -
-      // byte_past_heap, last_block, byte_past_heap);
+    if (last_block > byte_past_heap) {
+#ifdef DEBUG
+      printf("\033[2;101;30m<ERROR>\033[0m [last_block > byte_past_heap]%d "
+             "[last_block]0x%p [byte_past_heap]0x%p\n",
+             last_block > byte_past_heap, last_block, byte_past_heap);
+#endif
       exit(1);
     }
 
@@ -438,5 +542,7 @@ void mm_checkheap(int verbose) {
     block_id++;
   }
 
-  // printf("\033[2;103;30m[--==::: HEAPPY END :::==--\033[0m\n\n");
+#ifdef DEBUG
+  printf("\033[2;103;30m[--==::: HEAPPY END :::==--\033[0m\n\n");
+#endif
 }
