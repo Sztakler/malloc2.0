@@ -301,13 +301,16 @@ void free(void *ptr) {
   }
 
   void *left_block_footer = 0;
+#ifdef DEBUG
   size_t left_block_size = 0;
   int left_block_free = -1;
+#endif
 
+#ifdef DEBUG
   void *right_block_footer = 0;
   size_t right_block_size = 0;
   int right_block_free = -1;
-
+#endif
   /* `ptr` points to start of the payload, but we want a pointer to the
    * beginning of entire block. */
   void *bt = ptr - sizeof(word_t);
@@ -320,20 +323,27 @@ void free(void *ptr) {
   void *left_block_header = bt_prev(bt);
   if (left_block_header) {
     left_block_footer = bt_footer(left_block_header);
+#ifdef DEBUG
     left_block_size = bt_size(left_block_header);
     left_block_free = bt_free(left_block_header);
+#endif
   }
   /* We already can calculate address of the next block's header. */
   void *right_block_header = bt_next(bt);
   if (right_block_header) {
+#ifdef DEBUG
     right_block_footer = bt_footer(right_block_header);
     right_block_size = bt_size(right_block_header);
     right_block_free = bt_free(right_block_header);
+#endif
   }
 
   /* Withouth colaescing we don't change current block's bt's. */
   void *new_block_header = bt;
+#ifdef DEBUG
   void *new_block_footer = bt_footer(bt);
+#endif
+
   size_t new_block_size = bt_size(bt);
 
 #ifdef DEBUG
@@ -358,7 +368,9 @@ void free(void *ptr) {
   /* We shift new_block_footer to the right if right neighbour is free and is
    * inside the heap. */
   if (right_block_header && bt_free(right_block_header)) {
+#ifdef DEBUG
     new_block_footer = right_block_footer;
+#endif
     new_block_size += bt_size(right_block_header);
   }
   bt_make(new_block_header, new_block_size, FREE);
