@@ -319,9 +319,6 @@ void free(void *ptr) {
    * beginning of entire block. */
   void *bt = ptr - sizeof(word_t);
 
-  // size_t current_block_size = bt_size(bt);
-  // bt_make(bt, current_block_size, FREE);
-
   /* Footer of the previous block is right next to the current block's header.
    */
   void *left_block_header = bt_prev(bt);
@@ -635,14 +632,14 @@ void mm_checkheap(int verbose) {
       exit(1);
     }
 
-    // if (next && bt_free(ptr) && bt_free(next)) {
-    //   #ifdef DEBUG
-    //   printf("\033[2;101;30m<ERROR>\033[0m [free neighbours]%d "
-    //          "[current blok]%p [next block]%p\n",
-    //          bt_free(ptr) && bt_free(next), ptr, next);
-    //   #endif
-    //   exit(1);
-    // }
+    if (next && bt_free(ptr) && bt_free(next)) {
+      #ifdef DEBUG
+      printf("\033[2;101;30m<ERROR>\033[0m [free neighbours]%d "
+             "[current blok]%p [next block]%p\n",
+             bt_free(ptr) && bt_free(next), ptr, next);
+      #endif
+      exit(1);
+    }
 
     ptr = next;
     block_id++;
