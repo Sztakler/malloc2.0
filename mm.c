@@ -633,11 +633,11 @@ void mm_checkheap(int verbose) {
     }
 
     if (next && bt_free(ptr) && bt_free(next)) {
-      #ifdef DEBUG
+#ifdef DEBUG
       printf("\033[2;101;30m<ERROR>\033[0m [free neighbours]%d "
              "[current blok]%p [next block]%p\n",
              bt_free(ptr) && bt_free(next), ptr, next);
-      #endif
+#endif
       exit(1);
     }
 
