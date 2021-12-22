@@ -12,7 +12,7 @@
 
 /* If you want debugging output, use the following macro.
  * When you hand in, remove the #define DEBUG line. */
-// #define DEBUG
+#define DEBUG
 #ifdef DEBUG
 // #define debug(fmt, ...) printf("%s: " fmt "\n", __func__, __VA_ARGS__)
 #define msg(...) printf(__VA_ARGS__)
@@ -399,7 +399,9 @@ void free(void *ptr) {
 void *realloc(void *old_ptr, size_t size) {
 #ifdef DEBUG
   printf("\033[3;46;30m--== it's realloc time ==--\033[0m\n");
-  printf("\033[3;46;30m[reallocing][reqsz]0x%lx\033[0m \n", size);
+  printf("\033[3;46;30m[reallocing][reqsz]0x%lx [round-up size]0x%lx [ptr]0x%p "
+         "[bt]0x%p\033[0m \n",
+         size, blksz(size), old_ptr, old_ptr - sizeof(word_t));
 #endif
   /* If size == 0 then this is just free, and we return NULL. */
   if (size == 0) {
@@ -413,16 +415,48 @@ void *realloc(void *old_ptr, size_t size) {
 
   size = blksz(size);
 
+  void *old_bt = old_ptr - sizeof(word_t);
+  size_t old_bt_size = bt_size(old_bt);
+  void *next_block = bt_next(old_bt);
+  // Optimalization 2
+  /* If we want to shrink size of the block, we can split it and attach
+   * remaining part to the next free block (if it exists). */
+  if (old_bt_size > size) {
+
+#ifdef DEBUG
+    size_t next_block_size = -1;
+    if (next_block)
+      next_block_size = bt_size(next_block);
+    printf("\033[46;30m[2 OPTIMALIZATION]\033[0m\n");
+    printf(
+      "[old bt]0x%p [old size]0x%lx [nextblock]0x%p [next size]0x%lx [join]%d "
+      "[bt_free(next_block)]%d [old_bt_size > size]%d\n",
+      old_bt, old_bt_size, next_block, next_block_size,
+      bt_free(next_block) && (old_bt_size > size), bt_free(next_block),
+      old_bt_size > size);
+#endif
+
+    void *remain_block_bt = old_bt + size;
+    size_t remaining_size = bt_size(old_bt) - size;
+    bt_make(old_bt, size, USED);
+
+    if (next_block && bt_free(next_block))
+      bt_make(remain_block_bt, remaining_size + bt_size(next_block), FREE);
+    bt_make(remain_block_bt, remaining_size, FREE);
+
+    if (bt_next(remain_block_bt) ==
+        NULL) { // maybe this isn't the best way (or even correct way) to do it
+      last_block = remain_block_bt;
+    }
+  }
+
   // Optimalization 1
   /* If current block lies next to free block that's large enough, we can join
    * them. */
-  void *old_bt = old_ptr - sizeof(word_t);
-  void *next_block = bt_next(old_bt);
   if (next_block) {
-
-    size_t old_bt_size = bt_size(old_bt);
     size_t next_block_size = bt_size(next_block);
 #ifdef DEBUG
+    printf("\033[46;30m[1 OPTIMALIZATION]\033[0m\n");
     printf(
       "[old bt]0x%p [old size]0x%lx [nextblock]0x%p [next size]0x%lx [join]%d "
       "[bt_free(next_block)]%d [old_bt_size + next_block_size >= size]%d\n",
@@ -439,7 +473,6 @@ void *realloc(void *old_ptr, size_t size) {
 #ifdef DEBUG
       printf("[total size]0x%lx [increased size]0x%lx [new block size]0x%lx\n",
              total_size, increased_size, new_block_size);
-      printf("\033[46;30m[OPTIMALIZATION !]\033[0m\n");
       printf("[new block]0x%p [new block size]0x%lx [increased size]0x%lx\n",
              new_block, new_block_size, increased_size);
 #endif
