@@ -47,7 +47,7 @@ static void *last_block;     /* Points at last block */
 
 /* --=[ boundary tag handling ]=-------------------------------------------- */
 
-int optimized, unoptimized;
+// int optimized, unoptimized;
 
 static inline word_t bt_size(word_t *bt) {
   return *bt & ~(USED | PREVFREE | FIRST);
@@ -187,7 +187,7 @@ int mm_init(void) {
   byte_past_heap = first_block;
   last_block = first_block;
 
-  optimized = unoptimized = 0;
+  // optimized = unoptimized = 0;
 #ifdef DEBUG
   printf("%p %p %p %p\n\033[3;46;30m--== initialized ==--\033[0m\n", ptr,
          first_block, last_block, byte_past_heap);
