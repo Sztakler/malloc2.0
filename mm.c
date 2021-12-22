@@ -46,6 +46,8 @@ static void *last_block;     /* Points at last block */
 
 /* --=[ boundary tag handling ]=-------------------------------------------- */
 
+int optimized, unoptimized;
+
 static inline word_t bt_size(word_t *bt) {
   return *bt & ~(USED | PREVFREE);
 }
@@ -180,6 +182,7 @@ int mm_init(void) {
   byte_past_heap = first_block;
   last_block = first_block;
 
+  optimized = unoptimized = 0;
 #ifdef DEBUG
   printf("0x%p 0x%p 0x%p 0x%p\n\033[3;46;30m--== initialized ==--\033[0m\n",
          ptr, first_block, last_block, byte_past_heap);
@@ -418,6 +421,19 @@ void *realloc(void *old_ptr, size_t size) {
   void *old_bt = old_ptr - sizeof(word_t);
   size_t old_bt_size = bt_size(old_bt);
   void *next_block = bt_next(old_bt);
+
+  // Optimalization 3
+  /* We want to increase size by a insignificant ammount, but our block may
+   * already have padding, so we don't have to do anything. */
+  // printf("0x%lx == 0x%lx => %d \n", size, old_bt_size, size == old_bt_size);
+  if (size == old_bt_size) {
+#ifdef DEBUG
+    printf("\033[46;30m[3 OPTIMALIZATION -- Already good address]\033[0m\n");
+    printf("[size]0x%lx [old bt size]0x%lx\n", size, old_bt_size);
+#endif
+    return old_ptr;
+  }
+
   // Optimalization 2
   /* If we want to shrink size of the block, we can split it and attach
    * remaining part to the next free block (if it exists). */
@@ -427,7 +443,7 @@ void *realloc(void *old_ptr, size_t size) {
     size_t next_block_size = -1;
     if (next_block)
       next_block_size = bt_size(next_block);
-    printf("\033[46;30m[2 OPTIMALIZATION]\033[0m\n");
+    printf("\033[46;30m[2 OPTIMALIZATION -- Shrinking block]\033[0m\n");
     printf(
       "[old bt]0x%p [old size]0x%lx [nextblock]0x%p [next size]0x%lx [join]%d "
       "[bt_free(next_block)]%d [old_bt_size > size]%d\n",
@@ -456,7 +472,8 @@ void *realloc(void *old_ptr, size_t size) {
   if (next_block) {
     size_t next_block_size = bt_size(next_block);
 #ifdef DEBUG
-    printf("\033[46;30m[1 OPTIMALIZATION]\033[0m\n");
+    printf("\033[46;30m[1 OPTIMALIZATION -- Expanding block and joining with "
+           "right neighbour]\033[0m\n");
     printf(
       "[old bt]0x%p [old size]0x%lx [nextblock]0x%p [next size]0x%lx [join]%d "
       "[bt_free(next_block)]%d [old_bt_size + next_block_size >= size]%d\n",
