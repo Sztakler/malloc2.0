@@ -461,12 +461,12 @@ void *realloc(void *old_ptr, size_t size) {
   #endif
 
       void *remain_block_bt = old_bt + size;
-      size_t remaining_size = bt_size(old_bt) - size;
+      size_t remaining_size = old_bt_size - size;
       bt_make(old_bt, size, USED);
 
-      if (next_block && bt_free(next_block))
-        bt_make(remain_block_bt, remaining_size + bt_size(next_block), FREE);
-      else
+      // if (next_block && bt_free(next_block))
+      //   bt_make(remain_block_bt, remaining_size + bt_size(next_block), FREE);
+      // else
         bt_make(remain_block_bt, remaining_size, FREE);
 
       if (old_bt == last_block) { // maybe this isn't the best way (or even correct way) to do it
@@ -524,16 +524,20 @@ void *realloc(void *old_ptr, size_t size) {
   #endif
 
         bt_make(old_bt, increased_size, USED);
-        bt_make(new_block, new_block_size, FREE);
+        if (new_block_size > 0)
+          bt_make(new_block, new_block_size, FREE);
 
   #ifdef DEBUG
         printf("[bt]%p [ft]%p [size]0x%x [free]%d\n", new_block,
                bt_footer(new_block), bt_size(new_block), bt_free(new_block));
-  #endif
+  #endif  
 
         if (next_block == last_block) { // maybe this isn't the best way (or
                                           // even correct way) to do it
-          last_block = new_block;
+          if (new_block_size > 0)
+            last_block = new_block;
+          else
+            last_block = old_bt;
   #ifdef DEBUG
           printf(
             "[last_block=new_block][bt]%p [ft]%p [size]0x%x [free]%d\n[returned payload]%p\n",
@@ -629,14 +633,14 @@ void mm_checkheap(int verbose) {
       exit(1);
     }
 
-    if (next && bt_free(ptr) && bt_free(next)) {
-      #ifdef DEBUG
-      printf("\033[2;101;30m<ERROR>\033[0m [free neighbours]%d "
-             "[current blok]%p [next block]%p\n",
-             bt_free(ptr) && bt_free(next), ptr, next);
-      #endif
-      exit(1);
-    }
+    // if (next && bt_free(ptr) && bt_free(next)) {
+    //   #ifdef DEBUG
+    //   printf("\033[2;101;30m<ERROR>\033[0m [free neighbours]%d "
+    //          "[current blok]%p [next block]%p\n",
+    //          bt_free(ptr) && bt_free(next), ptr, next);
+    //   #endif
+    //   exit(1);
+    // }
 
     ptr = next;
     block_id++;
