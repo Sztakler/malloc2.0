@@ -12,7 +12,7 @@
 
 /* If you want debugging output, use the following macro.
  * When you hand in, remove the #define DEBUG line. */
-#define DEBUG
+// #define DEBUG
 #ifdef DEBUG
 // #define debug(fmt, ...) printf("%s: " fmt "\n", __func__, __VA_ARGS__)
 #define msg(...) printf(__VA_ARGS__)
