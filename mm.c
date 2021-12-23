@@ -10,7 +10,7 @@
 #include "mm.h"
 #include "memlib.h"
 
-/* 
+/*
   Imię: Krystian
   Nazwisko: Jasionek
   Nr indeksu: 317806
@@ -146,12 +146,14 @@ static inline word_t *bt_prev(word_t *bt) {
 /* --=[ free blocks list handling
  * ]=----------------------------------------------------------- */
 
-/* Returns pointer to the beginning of the block that lies 'offset' bytes from the heap start. */
+/* Returns pointer to the beginning of the block that lies 'offset' bytes from
+ * the heap start. */
 static inline void *get_block_ptr(word_t offset) {
   return mem_heap_lo() + offset;
 }
 
-/* Calculates offset from heap start to the start of the block based on pointer to the block start. */
+/* Calculates offset from heap start to the start of the block based on pointer
+ * to the block start. */
 static inline word_t get_offset(void *ptr) {
   return (uint64_t)ptr & 0x00000000FFFFFFFF;
 }
@@ -206,9 +208,9 @@ static inline void traverse_free_block_list() {
   void *current =
     mem_heap_lo() + root_next_offset; // address of first free block
 #ifdef DEBUG
-  printf(
-    "\033[3;30;47;30m[current]%p [heap_lo]%p [root]%p [root_next_offset]0x%x [root_prev_offset]0x%x\n",
-    current, mem_heap_lo(), root, root_next_offset, root_prev_offset);
+  printf("\033[3;30;47;30m[current]%p [heap_lo]%p [root]%p "
+         "[root_next_offset]0x%x [root_prev_offset]0x%x\n",
+         current, mem_heap_lo(), root, root_next_offset, root_prev_offset);
 #endif
   while (current != root) {
 #ifdef DEBUG
@@ -217,8 +219,8 @@ static inline void traverse_free_block_list() {
            "\033[3;30;47;30m\t[bt]%p [ft]%p [size]0x%x\n",
            ++id, current, get_free_block_next_off(current),
            get_free_block_next_ptr(current), get_free_block_prev_off(current),
-           get_free_block_prev_ptr(current),
-           current, bt_footer(current), bt_size(current));
+           get_free_block_prev_ptr(current), current, bt_footer(current),
+           bt_size(current));
 #endif
     current = get_free_block_next_ptr(current);
   }
@@ -227,8 +229,8 @@ static inline void traverse_free_block_list() {
 #endif
 }
 
-
-/* Adds new free block on the list and set's it's offsets to the next and previous free blocks on the list. */
+/* Adds new free block on the list and set's it's offsets to the next and
+ * previous free blocks on the list. */
 static inline void free_list_push_front(void *ptr) {
 #ifdef DEBUG
   printf("\033[3;30;47;30m--==::: List Push Front :::==--\n");
@@ -254,7 +256,8 @@ static inline void free_list_push_front(void *ptr) {
 #endif
 }
 
-/* Removes block starting at address `ptr` from free blocks list and changes it's neigbhours offsets. */
+/* Removes block starting at address `ptr` from free blocks list and changes
+ * it's neigbhours offsets. */
 static inline void free_list_remove(void *ptr) {
 #ifdef DEBUG
   printf("\033[3;30;47;30m--==::: List Remove :::==--\n");
@@ -268,29 +271,33 @@ static inline void free_list_remove(void *ptr) {
   if (prev_bt ==
       next_bt) { // only one block in list (prev_bt == next_bt == root)
 #ifdef DEBUG
-    printf("\033[3;30;47;30m[first block] [root]%p [root_prev]0x%x [root_next]0x%x\n",
-      root, root_prev_offset, root_next_offset);
+    printf("\033[3;30;47;30m[first block] [root]%p [root_prev]0x%x "
+           "[root_next]0x%x\n",
+           root, root_prev_offset, root_next_offset);
 #endif
     root_prev_offset = 0;
     root_next_offset = 0;
   } else if (next_bt == root) {
 #ifdef DEBUG
-    printf("\033[3;30;47;30m[next==root] [root]%p [root_prev]0x%x [root_next]0x%x [prev_bt]%p\n",
-      root, root_prev_offset, root_next_offset, prev_bt);
+    printf("\033[3;30;47;30m[next==root] [root]%p [root_prev]0x%x "
+           "[root_next]0x%x [prev_bt]%p\n",
+           root, root_prev_offset, root_next_offset, prev_bt);
 #endif
     set_free_block_next(prev_bt, root);
     root_prev_offset = get_offset(prev_bt);
   } else if (prev_bt == root) {
 #ifdef DEBUG
-    printf("\033[3;30;47;30m[prev==root] [root]%p [root_prev]0x%x [root_next]0x%x [next_bt]%p\n",
-      root, root_prev_offset, root_next_offset, next_bt);
+    printf("\033[3;30;47;30m[prev==root] [root]%p [root_prev]0x%x "
+           "[root_next]0x%x [next_bt]%p\n",
+           root, root_prev_offset, root_next_offset, next_bt);
 #endif
     set_free_block_prev(next_bt, root);
     root_next_offset = get_offset(next_bt);
   } else {
 #ifdef DEBUG
-    printf("\033[3;30;47;30m[normal case] [root]%p [root_prev]0x%x [root_next]0x%x [next_bt]%p [prev_bt]%p\n",
-      root, root_prev_offset, root_next_offset, next_bt, prev_bt);
+    printf("\033[3;30;47;30m[normal case] [root]%p [root_prev]0x%x "
+           "[root_next]0x%x [next_bt]%p [prev_bt]%p\n",
+           root, root_prev_offset, root_next_offset, next_bt, prev_bt);
 #endif
     set_free_block_prev(next_bt, prev_bt);
     set_free_block_next(prev_bt, next_bt);
@@ -338,7 +345,8 @@ static inline void split(word_t *bt, size_t size) {
 #endif
 
 #ifdef FREELISTDEBUG
-  /* Add newly created free block to the free block list, remove old and update it's successor's offset to previous block. */
+  /* Add newly created free block to the free block list, remove old and update
+   * it's successor's offset to previous block. */
   free_list_remove(bt);
   free_list_push_front(remain_block_bt);
   // set_free_block_next(get_free_block_prev_ptr(bt), remain_block_bt);
@@ -378,7 +386,7 @@ int mm_init(void) {
 /* --=[ malloc ]=----------------------------------------------------------- */
 
 static word_t *find_free_block(size_t reqsz) {
-  #ifdef DEBUG
+#ifdef DEBUG
   printf("\033[3;30;47;30m--==::: Finding Free Block :::==--\n");
   int id = 0;
 #endif
@@ -518,13 +526,14 @@ void *malloc(size_t size) {
   size = blksz(size);
 #ifdef DEBUG
   printf("[round-up size]0x%lx\n", size);
-  #endif
-  #ifdef FREELISTDEBUG
+#endif
+#ifdef FREELISTDEBUG
   word_t *bt = find_free_block(size);
-  #ifdef DEBUG
-  printf("Free list found: [bt]%p [ft]%p [size]0x%x\n", bt, bt_footer(bt), bt_size(bt));
-  #endif
-  #endif
+#ifdef DEBUG
+  printf("Free list found: [bt]%p [ft]%p [size]0x%x\n", bt, bt_footer(bt),
+         bt_size(bt));
+#endif
+#endif
   bt_make(bt, bt_size(bt), USED);
 #ifdef DEBUG
   printf("\033[3;102;30m--== mallocked ==-- at %p\033[0m\n\n", bt_payload(bt));
@@ -804,9 +813,9 @@ void *realloc(void *old_ptr, size_t size) {
 #endif
 
       bt_make(old_bt, increased_size, USED);
-      #ifdef FREELISTDEBUG
+#ifdef FREELISTDEBUG
       free_list_remove(next_block);
-      #endif
+#endif
       if (new_block_size > 0) {
         bt_make(new_block, new_block_size, FREE);
 #ifdef FREELISTDEBUG
