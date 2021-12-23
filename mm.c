@@ -530,7 +530,7 @@ void *malloc(size_t size) {
 #ifdef FREELISTDEBUG
   word_t *bt = find_free_block(size);
 
-  if (bt == NULL){
+  if (bt == NULL) {
     bt = mem_sbrk(size);
     // bt_make(bt, size, USED);
     last_block = bt;
