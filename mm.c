@@ -12,6 +12,7 @@
 
 /* If you want debugging output, use the following macro.
  * When you hand in, remove the #define DEBUG line. */
+// #define FREELISTDEBUG
 // #define DEBUG
 #ifdef DEBUG
 // #define debug(fmt, ...) printf("%s: " fmt "\n", __func__, __VA_ARGS__)
@@ -44,6 +45,17 @@ typedef enum {
 static void *first_block;    /* Address of the first block */
 static void *byte_past_heap; /* Address past last byte of last block */
 static void *last_block;     /* Points at last block */
+
+// typedef struct list_root {
+//   word_t offset_next;
+//   word_t offset_prev;
+// } list_root;
+
+// list_root *free_list_root;
+
+static void *root;
+static word_t root_next_offset;
+static word_t root_prev_offset;
 
 /* --=[ boundary tag handling ]=-------------------------------------------- */
 
@@ -130,9 +142,125 @@ static inline word_t *bt_prev(word_t *bt) {
   return prev;
 }
 
+/* --=[ free blocks list handling
+ * ]=----------------------------------------------------------- */
+
+static inline void *get_block_ptr(word_t offset) {
+  return mem_heap_lo() + offset;
+}
+
+static inline word_t get_offset(void *ptr) {
+  return (uint64_t)ptr & 0x00000000FFFFFFFF;
+}
+
+static inline void set_free_block_next(word_t *block_bt, word_t *next) {
+  *(block_bt + 1) = get_offset(next);
+  printf("[set next] [bt]%p [next_off]0x%x [next]0x%x\n", block_bt,
+         get_offset(next), *(block_bt + 1));
+}
+
+static inline void set_free_block_prev(word_t *block_bt, word_t *prev) {
+  *(block_bt + 2) = get_offset(prev);
+}
+
+static inline void set_free_block_offsets(word_t *block_bt, word_t *next,
+                                          word_t *prev) {
+  set_free_block_next(block_bt, next);
+  set_free_block_prev(block_bt, prev);
+}
+
+static inline word_t get_free_block_next_off(word_t *block_bt) {
+  return *(block_bt + 1);
+}
+
+static inline void *get_free_block_next_ptr(word_t *block_bt) {
+  return get_block_ptr(get_free_block_next_off(block_bt));
+}
+
+static inline word_t get_free_block_prev_off(word_t *block_bt) {
+  return *(block_bt + 2);
+}
+
+static inline void *get_free_block_prev_ptr(word_t *block_bt) {
+  return get_block_ptr(get_free_block_prev_off(block_bt));
+}
+
+static inline void free_list_push_front(void *ptr) {
+  printf("\033[3;30;47;30m--==::: List Push Front :::==--\n");
+  void *curr_first_block = get_block_ptr(root_next_offset);
+
+  root_next_offset = get_offset(ptr);
+  if (root_prev_offset == 0) // It's first free block in a list
+    root_prev_offset = root_next_offset;
+  else
+    set_free_block_prev(curr_first_block, ptr);
+
+  set_free_block_offsets(ptr, curr_first_block, root);
+
+#ifdef DEBUG
+  printf("\033[3;30;47;30m[ptr]%p [next_off]0x%x [next]%p [prev_off]0x%x "
+         "[prev]%p [root_next_off]0x%x [root_prev_off]0x%x [curr_first]%p\n",
+         ptr, get_free_block_next_off(ptr), get_free_block_next_ptr(ptr),
+         get_free_block_prev_off(ptr), get_free_block_prev_ptr(ptr),
+         root_next_offset, root_prev_offset, curr_first_block);
+  printf("\033[3;30;47;30m--==::: Push End :::==--\033[0m\n");
+
+#endif
+}
+
+static inline void free_list_remove(void *ptr) {
+  printf("\033[3;30;47;30m--==::: List Remove :::==--\n");
+
+  void *prev_bt = get_free_block_prev_ptr(ptr);
+  void *next_bt = get_free_block_next_ptr(ptr);
+
+  printf("\033[3;30;47;30m[ptr]%p [prev_bt]%p [next_bt]%p\n", ptr, prev_bt,
+         next_bt);
+
+  if (prev_bt ==
+      next_bt) { // only one block in list (prev_bt == next_bt == root)
+    printf("\033[3;30;47;30m[first block]\n");
+    root_prev_offset = 0;
+    root_next_offset = 0;
+  } else if (next_bt == root) {
+    printf("\033[3;30;47;30m[next==root]\n");
+    set_free_block_next(prev_bt, root);
+    root_prev_offset = get_offset(prev_bt);
+  } else if (prev_bt == root) {
+    printf("\033[3;30;47;30m[prev==root]\n");
+    set_free_block_prev(next_bt, root);
+    root_next_offset = get_offset(next_bt);
+  } else {
+    printf("\033[3;30;47;30m[normal case]\n");
+    set_free_block_prev(next_bt, prev_bt);
+    set_free_block_next(prev_bt, next_bt);
+  }
+
+  printf("\033[3;30;47;30m--==::: Remove End :::==--\033[0m\n");
+}
+
+static inline void traverse_free_block_list() {
+  printf("\033[3;30;47;30m--==::: Free Blocks List :::==--\n");
+  void *current =
+    mem_heap_lo() + root_next_offset; // address of first free block
+  int id = 0;
+  printf(
+    "\033[3;30;47;30m[current]%p [heap_lo]%p [root_next_offset]0x%x [root]%p\n",
+    current, mem_heap_lo(), root_next_offset, root);
+  while (current != root) {
+    printf("\033[3;30;47;30m[id]%d [bt]0x%p [next_off]0x%x [next]%p "
+           "[prev_off]0x%x [prev]%p\n",
+           ++id, current, get_free_block_next_off(current),
+           get_free_block_next_ptr(current), get_free_block_prev_off(current),
+           get_free_block_prev_ptr(current));
+    current = get_free_block_next_ptr(current);
+  }
+  printf("\033[3;30;47;30m--==::: List End :::==--\033[0m\n");
+}
+
 /* --=[ miscellanous procedures ]=------------------------------------------ */
 
-static size_t round_up(size_t size) {
+static inline size_t round_up(size_t size) {
   return (size + ALIGNMENT - 1) & -ALIGNMENT;
 }
 
@@ -160,6 +288,10 @@ static inline void split(word_t *bt, size_t size) {
   bt_make(bt, size, FREE);
   bt_make(remain_block_bt, remaining_size, FREE);
 
+#ifdef FREELISTDEBUG
+  set_free_block_next(get_free_block_prev_ptr(bt), remain_block_bt);
+#endif
+
 #ifdef DEBUG
   printf("\t\033[3;42;30m{split}\033[0m\033[3;45;30m[splitting block]\033[0m "
          "[left]%p:%p (size)0x%x [right]%p:%p (size)0x%x (rmsz)0x%lx\n",
@@ -184,6 +316,10 @@ int mm_init(void) {
 
   byte_past_heap = first_block;
   last_block = first_block;
+
+  root = mem_heap_lo();
+  root_next_offset = 0;
+  root_prev_offset = 0;
 
 #ifdef DEBUG
   printf("%p %p %p %p\n\033[3;46;30m--== initialized ==--\033[0m\n", ptr,
@@ -221,6 +357,9 @@ static word_t *find_fit(size_t reqsz) {
      * simply return it.
      */
     if ((bt_size(ptr) == reqsz) && bt_free(ptr)) {
+#ifdef FREELISTDEBUG
+      free_list_remove(ptr);
+#endif
       return bt;
     }
     /*
@@ -228,8 +367,14 @@ static word_t *find_fit(size_t reqsz) {
      * block -- of `reqsz` bytes and of remaining bytes.
      */
     else if ((bt_size(ptr) > reqsz) && bt_free(ptr)) {
-      // TODO split()
       split(ptr, reqsz);
+
+#ifdef FREELISTDEBUG
+      void *new_free_block = bt_next(ptr);
+      free_list_remove(ptr);
+      free_list_push_front(new_free_block);
+#endif
+
       return ptr;
     }
     /*
@@ -392,6 +537,10 @@ void free(void *ptr) {
                            // way) to do it
     last_block = new_block_header;
   }
+#ifdef FREELISTDEBUG
+  free_list_push_front(new_block_header);
+#endif
+
 #ifdef DEBUG
   printf("\033[3;106;30m--== freed ==--\033[0m\n\n");
   printf("Called mm_checkheap() from free\n");
@@ -459,10 +608,10 @@ void *realloc(void *old_ptr, size_t size) {
     size_t remaining_size = old_bt_size - size;
     bt_make(old_bt, size, USED);
 
-    // if (next_block && bt_free(next_block))
-    //   bt_make(remain_block_bt, remaining_size + bt_size(next_block), FREE);
-    // else
-    bt_make(remain_block_bt, remaining_size, FREE);
+    if (next_block && bt_free(next_block))
+      bt_make(remain_block_bt, remaining_size + bt_size(next_block), FREE);
+    else
+      bt_make(remain_block_bt, remaining_size, FREE);
 
     if (old_bt == last_block) { // maybe this isn't the best way (or even
                                 // correct way) to do it
@@ -509,6 +658,7 @@ void *realloc(void *old_ptr, size_t size) {
       bt_free(next_block) && (old_bt_size + next_block_size >= size),
       bt_free(next_block), old_bt_size + next_block_size >= size);
 #endif
+    /* We will join neighbouring free blocks. */
     if (bt_free(next_block) && (old_bt_size + next_block_size >= size)) {
       size_t total_size = old_bt_size + next_block_size;
       size_t increased_size = size;
@@ -645,6 +795,9 @@ void mm_checkheap(int verbose) {
     block_id++;
   }
 
+#ifdef FREELISTDEBUG
+  traverse_free_block_list();
+#endif
 #ifdef DEBUG
   printf("\033[2;103;30m[--==::: HEAPPY END :::==--\033[0m\n\n");
 #endif
