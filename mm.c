@@ -47,7 +47,6 @@ typedef enum {
   FREE = 0b000,     /* Block is free */
   USED = 0b001,     /* Block is used */
   PREVFREE = 0b010, /* Previous block is free (optimized boundary tags) */
-  FIRST = 0b100,
 } bt_flags;
 
 static void *first_block;    /* Address of the first block */
@@ -61,7 +60,7 @@ static word_t root_prev_offset;
 /* --=[ boundary tag handling ]=-------------------------------------------- */
 
 static inline word_t bt_size(word_t *bt) {
-  return *bt & ~(USED | PREVFREE | FIRST);
+  return *bt & ~(USED | PREVFREE);
 }
 
 static inline int bt_used(word_t *bt) {
@@ -366,7 +365,7 @@ int mm_init(void) {
     return -1;
 
   first_block = ptr + ALIGNMENT - sizeof(word_t);
-  bt_make(first_block, 0, FREE | FIRST);
+  bt_make(first_block, 0, FREE);
 
   byte_past_heap = first_block;
   last_block = first_block;
@@ -420,10 +419,10 @@ static word_t *find_free_block(size_t reqsz) {
 #ifdef DEBUG
   printf("\033[3;30;47;30m--==::: List End :::==--\033[0m\n");
 #endif
-  void *ptr = mem_sbrk(reqsz);
-  bt_make(ptr, reqsz, USED);
-  last_block = ptr;
-  byte_past_heap = ptr + reqsz;
+  // void *ptr = mem_sbrk(reqsz);
+  // bt_make(ptr, reqsz, USED);
+  // last_block = ptr;
+  // byte_past_heap = ptr + reqsz;
 
 #ifdef DEBUG
   printf("\033[3;43;30m[Creating new block]\033[0m at %p ending at %p of "
@@ -431,7 +430,8 @@ static word_t *find_free_block(size_t reqsz) {
          ptr, bt_footer(ptr) + 1, bt_size(ptr), byte_past_heap);
 #endif
 
-  return ptr;
+  // return ptr;
+  return NULL;
 }
 
 #if 1
@@ -529,12 +529,20 @@ void *malloc(size_t size) {
 #endif
 #ifdef FREELISTDEBUG
   word_t *bt = find_free_block(size);
+
+  if (bt == NULL){
+    bt = mem_sbrk(size);
+    // bt_make(bt, size, USED);
+    last_block = bt;
+    byte_past_heap = bt + size;
+  }
 #ifdef DEBUG
   printf("Free list found: [bt]%p [ft]%p [size]0x%x\n", bt, bt_footer(bt),
          bt_size(bt));
 #endif
 #endif
-  bt_make(bt, bt_size(bt), USED);
+  // bt_make(bt, bt_size(bt), USED);
+  bt_make(bt, size, USED);
 #ifdef DEBUG
   printf("\033[3;102;30m--== mallocked ==-- at %p\033[0m\n\n", bt_payload(bt));
 
