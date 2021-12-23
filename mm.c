@@ -344,7 +344,7 @@ static inline void split(word_t *bt, size_t size) {
   }
 
   /* Create two new blocks. */
-  bt_make(bt, size, FREE);
+  // bt_make(bt, size, FREE);
   bt_make(remain_block_bt, remaining_size, FREE);
 
 #ifdef DEBUG
