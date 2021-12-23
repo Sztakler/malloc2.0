@@ -267,6 +267,13 @@ static inline void free_list_remove(void *ptr) {
   printf("\033[3;30;47;30m[ptr]%p [prev_bt]%p [next_bt]%p\n", ptr, prev_bt,
          next_bt);
 #endif
+
+  if (prev_bt != root && next_bt != root) {
+    set_free_block_prev(next_bt, prev_bt);
+    set_free_block_next(prev_bt, next_bt);
+    return;
+  }
+
   if (prev_bt ==
       next_bt) { // only one block in list (prev_bt == next_bt == root)
 #ifdef DEBUG
@@ -276,6 +283,7 @@ static inline void free_list_remove(void *ptr) {
 #endif
     root_prev_offset = 0;
     root_next_offset = 0;
+    return;
   } else if (next_bt == root) {
 #ifdef DEBUG
     printf("\033[3;30;47;30m[next==root] [root]%p [root_prev]0x%x "
@@ -284,7 +292,8 @@ static inline void free_list_remove(void *ptr) {
 #endif
     set_free_block_next(prev_bt, root);
     root_prev_offset = get_offset(prev_bt);
-  } else if (prev_bt == root) {
+    return;
+  } else { // if (prev_bt == root) {
 #ifdef DEBUG
     printf("\033[3;30;47;30m[prev==root] [root]%p [root_prev]0x%x "
            "[root_next]0x%x [next_bt]%p\n",
@@ -292,15 +301,17 @@ static inline void free_list_remove(void *ptr) {
 #endif
     set_free_block_prev(next_bt, root);
     root_next_offset = get_offset(next_bt);
-  } else {
-#ifdef DEBUG
-    printf("\033[3;30;47;30m[normal case] [root]%p [root_prev]0x%x "
-           "[root_next]0x%x [next_bt]%p [prev_bt]%p\n",
-           root, root_prev_offset, root_next_offset, next_bt, prev_bt);
-#endif
-    set_free_block_prev(next_bt, prev_bt);
-    set_free_block_next(prev_bt, next_bt);
-  }
+    return;
+  } 
+  // else {
+// #ifdef DEBUG
+    // printf("\033[3;30;47;30m[normal case] [root]%p [root_prev]0x%x "
+          //  "[root_next]0x%x [next_bt]%p [prev_bt]%p\n",
+          //  root, root_prev_offset, root_next_offset, next_bt, prev_bt);
+// #endif
+    // set_free_block_prev(next_bt, prev_bt);
+    // set_free_block_next(prev_bt, next_bt);
+  // }
 
 #ifdef DEBUG
   printf("\033[3;30;47;30m--==::: Remove End :::==--\033[0m\n");
