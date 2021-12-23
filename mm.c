@@ -302,15 +302,15 @@ static inline void free_list_remove(void *ptr) {
     set_free_block_prev(next_bt, root);
     root_next_offset = get_offset(next_bt);
     return;
-  } 
+  }
   // else {
-// #ifdef DEBUG
-    // printf("\033[3;30;47;30m[normal case] [root]%p [root_prev]0x%x "
-          //  "[root_next]0x%x [next_bt]%p [prev_bt]%p\n",
-          //  root, root_prev_offset, root_next_offset, next_bt, prev_bt);
-// #endif
-    // set_free_block_prev(next_bt, prev_bt);
-    // set_free_block_next(prev_bt, next_bt);
+  // #ifdef DEBUG
+  // printf("\033[3;30;47;30m[normal case] [root]%p [root_prev]0x%x "
+  //  "[root_next]0x%x [next_bt]%p [prev_bt]%p\n",
+  //  root, root_prev_offset, root_next_offset, next_bt, prev_bt);
+  // #endif
+  // set_free_block_prev(next_bt, prev_bt);
+  // set_free_block_next(prev_bt, next_bt);
   // }
 
 #ifdef DEBUG
