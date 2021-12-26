@@ -16,6 +16,17 @@
   Nr indeksu: 317806
 
   Oświadczam, że poniższe rozwiązanie zostało wykonane przeze mnie samodzielnie.
+
+  Bloki pamięci są postaci:
+  header (4 bajty) -- payload -- footer (4 bajty) i są wyrównane do 16 bajtów.
+  Wolne bloki posiadają również dwa czterobajtowe offsety tuż za headerem, są to
+  offsety od początku sterty (adres 0x800...0) kolejnego i poprzedniego wolnego
+  bloku.
+
+  Instrukcje między #ifdef DEBUG ... #endif są instrukcjami pomocniczymi,
+  najczęściej wypisującymi efekty operacji lub zawartość sterty i bloków. Część
+  z nich jest zawarta również w check-heap. Definicja FREELISTDEBUG oznacza
+  fragment obejmujący implementację listy wolnych bloków.
 */
 
 /* If you want debugging output, use the following macro.
@@ -416,12 +427,11 @@ static word_t *find_free_block(size_t reqsz) {
            get_free_block_prev_ptr(current));
 #endif
     size_t current_block_size = bt_size(current);
-    if (current_block_size == reqsz) {
-      free_list_remove(current);
-      return current;
-    }
     if (current_block_size > reqsz) {
       split(current, reqsz);
+      return current;
+    } else if (current_block_size == reqsz) {
+      free_list_remove(current);
       return current;
     }
 
